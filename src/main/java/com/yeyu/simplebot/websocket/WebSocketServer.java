@@ -2,10 +2,12 @@ package com.yeyu.simplebot.websocket;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import com.yeyu.simplebot.handler.QQMessageHandler;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -38,8 +40,8 @@ public class WebSocketServer {
     /**
      * 连接sid和连接会话
      */
-    private String sid;
-    private Session session;
+    private static String sid;
+    private static Session session;
 
     /**
      * 连接建立成功调用的方法。由前端<code>new WebSocket</code>触发
@@ -103,11 +105,12 @@ public class WebSocketServer {
         /**
          * 模拟约定：如果未指定sid信息，则群发，否则就单独发送
          */
-        if (toSid == null || toSid == "" || "".equalsIgnoreCase(toSid)) {
-            sendToAll(msg);
-        } else {
-            sendToOne(toSid, msg);
-        }
+        QQMessageHandler.handleQQMessage(message);
+//        if (toSid == null || toSid == "" || "".equalsIgnoreCase(toSid)) {
+//            sendToAll(msg);
+//        } else {
+//            sendToOne(toSid, msg);
+//        }
     }
 
     /**
@@ -127,14 +130,14 @@ public class WebSocketServer {
      *
      * @param message 消息
      */
-    private void sendToAll(String message) {
+    public static void sendToAll(String message) {
         // 遍历在线map集合
         onlineSessionClientMap.forEach((onlineSid, toSession) -> {
             // 排除掉自己
-            if (!sid.equalsIgnoreCase(onlineSid)) {
+//            if (!sid.equalsIgnoreCase(onlineSid)) {
                 log.info("服务端给客户端群发消息 ==> sid = {}, toSid = {}, message = {}", sid, onlineSid, message);
                 toSession.getAsyncRemote().sendText(message);
-            }
+//            }
         });
     }
 
@@ -144,7 +147,7 @@ public class WebSocketServer {
      * @param toSid
      * @param message
      */
-    private void sendToOne(String toSid, String message) {
+    public void sendToOne(String toSid, String message) {
         // 通过sid查询map中是否存在
         Session toSession = onlineSessionClientMap.get(toSid);
         if (toSession == null) {
